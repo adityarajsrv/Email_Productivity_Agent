@@ -15,33 +15,41 @@ const Sidebar = () => {
         </div>
         <hr className="text-gray-300"/>
         <div className="space-y-3 mt-2 text-gray-600">
-            <div className="flex flex-row justify-start items-center space-x-4 pl-4 py-2 hover:bg-gray-100 cursor-pointer">
+            <div className="flex flex-row justify-start items-center space-x-4 pl-4 py-3 hover:bg-purple-100 cursor-pointer">
                 <AiOutlineAppstore size={28} />
                 <span className="text-lg">Dashboard</span>
             </div>
-            <div className="flex flex-row justify-start items-center space-x-4 pl-4 py-2 hover:bg-gray-100 cursor-pointer">
+            <div className="flex flex-row justify-start items-center space-x-4 pl-4 py-3 hover:bg-purple-100 cursor-pointer">
                 <TiPen size={28} />
                 <span className="text-lg">Draft Email</span>
             </div>
-            <div className="flex flex-row justify-start items-center space-x-4 pl-4 py-2 hover:bg-gray-100 cursor-pointer">
+            <div className="flex flex-row justify-start items-center space-x-4 pl-4 py-3 hover:bg-purple-100 cursor-pointer">
                 <FiRefreshCcw size={28} />
                 <span className="text-lg">Rewrite</span>
             </div>
-            <div className="flex flex-row justify-start items-center space-x-4 pl-4 py-2 hover:bg-gray-100 cursor-pointer">
+            <div className="flex flex-row justify-start items-center space-x-4 pl-4 py-3 hover:bg-purple-100 cursor-pointer">
                 <FiFileText size={28} />
                 <span className="text-lg">Summaries</span>
             </div>
-            <div className="flex flex-row justify-start items-center space-x-4 pl-4 py-2 hover:bg-gray-100 cursor-pointer">
+            <div className="flex flex-row justify-start items-center space-x-4 pl-4 py-3 hover:bg-purple-100 cursor-pointer">
                 <AiOutlineThunderbolt size={28} />
                 <span className="text-lg">Auto-Reply</span>
             </div>
-            <div className="flex flex-row justify-start items-center space-x-4 pl-4 py-2 hover:bg-gray-100 cursor-pointer">
+            <div className="flex flex-row justify-start items-center space-x-4 pl-4 py-3 hover:bg-purple-100 cursor-pointer">
                 <VscHistory size={28} />
                 <span className="text-lg">History</span>
             </div>
-            <div className="flex flex-row justify-start items-center space-x-4 pl-4 py-2 hover:bg-gray-100 cursor-pointer">
+            <div className="flex flex-row justify-start items-center space-x-4 pl-4 py-3 hover:bg-purple-100 cursor-pointer">
                 <FiSettings size={28}/>
                 <span className="text-lg">Settings</span>
+            </div>
+        </div>
+        <hr className="text-gray-300 mt-30"/>
+        <div className="absolute bottom-0 mb-4 flex flex-row justify-start items-center space-x-4 pl-4">
+            <h3 className="py-2.5 px-4 rounded-full bg-purple-500">U</h3>
+            <div className="text-gray-600">
+                <h3 className="text-md font-medium">User</h3>
+                <p className="text-sm">user@email.com</p>
             </div>
         </div>
     </div>
