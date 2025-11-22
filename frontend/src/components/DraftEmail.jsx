@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { VscSparkle } from 'react-icons/vsc';
-import { FiCopy, FiMail, FiEdit2, FiTrash2, FiInfo, FiCheck, FiX } from 'react-icons/fi';
+import { FiCopy, FiMail, FiEdit2, FiTrash2, FiInfo, FiCheck, FiX, FiSave } from 'react-icons/fi';
 
 const DraftEmail = () => {
   const [context, setContext] = useState('');
@@ -11,8 +11,10 @@ const DraftEmail = () => {
   const [copied, setCopied] = useState(false);
   const [editingRecipient, setEditingRecipient] = useState(false);
   const [editingSubject, setEditingSubject] = useState(false);
+  const [editingEmail, setEditingEmail] = useState(false);
   const [tempRecipient, setTempRecipient] = useState({ name: '', email: '' });
   const [tempSubject, setTempSubject] = useState('');
+  const [tempEmail, setTempEmail] = useState('');
 
   const handleGenerateEmail = () => {
     setIsGenerating(true);
@@ -35,11 +37,21 @@ const DraftEmail = () => {
     alert(`Email would be sent to: ${recipient.email}\n\nSubject: ${subject}\n\n${generatedEmail}`);
   };
 
-  const handleEditEmail = () => {
-    const editedEmail = prompt('Edit your email:', generatedEmail);
-    if (editedEmail !== null) {
-      setGeneratedEmail(editedEmail);
+  const startEditingEmail = () => {
+    setTempEmail(generatedEmail);
+    setEditingEmail(true);
+  };
+
+  const saveEditedEmail = () => {
+    if (tempEmail.trim()) {
+      setGeneratedEmail(tempEmail);
     }
+    setEditingEmail(false);
+  };
+
+  const cancelEditingEmail = () => {
+    setEditingEmail(false);
+    setTempEmail('');
   };
 
   const startEditingRecipient = () => {
@@ -85,7 +97,7 @@ const DraftEmail = () => {
     <div className="px-6 py-4">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">AI Email Drafting</h1>
-        <p className="text-lg text-gray-600 mt-2">Let AI help you write professional emails</p>
+        <p className="text-md text-gray-500 mt-2">Let AI help you write professional emails</p>
       </div>
       <div className="flex flex-row gap-8">
         <div className="flex-1">
@@ -251,7 +263,7 @@ const DraftEmail = () => {
             <div className="p-6 h-full flex flex-col">
               <div className="flex items-center justify-between mb-6 pb-2 border-b border-gray-100">
                 <h2 className="text-xl font-semibold text-gray-900">Generated Email</h2>
-                {generatedEmail && (
+                {generatedEmail && !editingEmail && (
                   <button 
                     onClick={handleCopyEmail}
                     className="cursor-pointer flex items-center space-x-2 text-sm text-purple-600 hover:text-purple-700 font-medium"
@@ -264,25 +276,54 @@ const DraftEmail = () => {
               <div className="flex-1 border border-gray-300 rounded-lg p-6 bg-gray-50/50 transition-all duration-300">
                 {generatedEmail ? (
                   <div className="space-y-4">
-                    <div className="whitespace-pre-wrap text-gray-700 leading-relaxed font-medium">
-                      {generatedEmail}
-                    </div>
-                    <div className="flex space-x-3 pt-4 border-t border-gray-200">
-                      <button 
-                        onClick={handleSendEmail}
-                        className="cursor-pointer flex-1 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center space-x-2"
-                      >
-                        <FiMail size={16} />
-                        <span>Send Email</span>
-                      </button>
-                      <button 
-                        onClick={handleEditEmail}
-                        className="cursor-pointer flex-1 border border-gray-300 hover:bg-gray-50 text-gray-700 py-2 px-4 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center space-x-2"
-                      >
-                        <FiEdit2 size={16} />
-                        <span>Edit</span>
-                      </button>
-                    </div>
+                    {!editingEmail ? (
+                      <>
+                        <div className="whitespace-pre-wrap text-gray-700 leading-relaxed font-medium">
+                          {generatedEmail}
+                        </div>
+                        <div className="flex space-x-3 pt-4 border-t border-gray-200">
+                          <button 
+                            onClick={handleSendEmail}
+                            className="cursor-pointer flex-1 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center space-x-2"
+                          >
+                            <FiMail size={16} />
+                            <span>Send Email</span>
+                          </button>
+                          <button 
+                            onClick={startEditingEmail}
+                            className="cursor-pointer flex-1 border border-gray-300 hover:bg-gray-50 text-gray-700 py-2 px-4 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center space-x-2"
+                          >
+                            <FiEdit2 size={16} />
+                            <span>Edit</span>
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="space-y-4">
+                        <textarea
+                          value={tempEmail}
+                          onChange={(e) => setTempEmail(e.target.value)}
+                          className="w-full border border-gray-300 rounded-lg p-4 min-h-[300px] resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                          placeholder="Edit your email..."
+                        />
+                        <div className="flex space-x-3 pt-4 border-t border-gray-200">
+                          <button 
+                            onClick={saveEditedEmail}
+                            className="cursor-pointer flex-1 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center space-x-2"
+                          >
+                            <FiSave size={16} />
+                            <span>Save</span>
+                          </button>
+                          <button 
+                            onClick={cancelEditingEmail}
+                            className="cursor-pointer flex-1 border border-gray-300 hover:bg-gray-50 text-gray-700 py-2 px-4 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center space-x-2"
+                          >
+                            <FiX size={16} />
+                            <span>Cancel</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="h-full flex flex-col items-center justify-center text-center p-8">
