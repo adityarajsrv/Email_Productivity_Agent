@@ -159,7 +159,7 @@ Looking forward to our continued success,
     <div className="px-6 py-4">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Email Rewrite</h1>
-        <p className="text-lg text-gray-600 mt-2">Transform your email&apos;s tone and style</p>
+        <p className="text-md text-gray-600 mt-2">Transform your email&apos;s tone and style</p>
       </div>
       <div className="flex flex-row gap-8">
         <div className="flex-1">
