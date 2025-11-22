@@ -8,13 +8,13 @@ import { FiSettings } from "react-icons/fi";
 
 const Sidebar = () => {
   return (
-    <div className="border-r h-screen w-2/11 border-gray-300">
+    <div className="border-r h-screen w-2/11 border-gray-300 flex flex-col">
         <div className="flex flex-row justify-start items-center mb-1 mt-1">
             <img src="/logo.png" alt="Logo" className="h-16 w-16 m-2" />
             <h1 className="text-4xl text-[#ef2684]">Draft<span className="text-[#6d8afc]">Pilot</span></h1>
         </div>
         <hr className="text-gray-300"/>
-        <div className="space-y-3 mt-2 text-gray-600">
+        <div className="flex-1 space-y-3 mt-2 text-gray-600">
             <div className="flex flex-row justify-start items-center space-x-4 pl-4 py-3 hover:bg-purple-100 cursor-pointer">
                 <AiOutlineAppstore size={28} />
                 <span className="text-lg">Dashboard</span>
@@ -45,7 +45,7 @@ const Sidebar = () => {
             </div>
         </div>
         <hr className="text-gray-300 mt-30"/>
-        <div className="absolute bottom-0 mb-4 flex flex-row justify-start items-center space-x-4 pl-4">
+        <div className="flex flex-row justify-start items-center space-x-4 pl-4 py-4">
             <h3 className="py-2.5 px-4 rounded-full bg-purple-500">U</h3>
             <div className="text-gray-600">
                 <h3 className="text-md font-medium">User</h3>
