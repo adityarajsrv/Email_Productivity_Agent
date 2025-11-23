@@ -78,7 +78,7 @@ const Dashboard = () => {
                 <h3 className="text-md text-black font-semibold">
                   Email Drafted
                 </h3>
-                <p>2 min ago</p>
+                <p className="text-xs">2 min ago</p>
               </div>
               <p className="mb-2">Q4 Marketing Strategy</p>
               <hr className="text-gray-300 mb-4" />
@@ -90,7 +90,7 @@ const Dashboard = () => {
                 <h3 className="text-md text-black font-semibold">
                   Email Written
                 </h3>
-                <p>15 min ago</p>
+                <p className="text-xs">15 min ago</p>
               </div>
               <p className="mb-2">Client Proposal Follow-up</p>
               <hr className="text-gray-300 mb-4" />
@@ -102,7 +102,7 @@ const Dashboard = () => {
                 <h3 className="text-md text-black font-semibold">
                     Auto Reply Sent                 
                 </h3>
-                <p>1 hour ago</p>
+                <p className="text-xs">1 hour ago</p>
               </div>
               <p className="mb-2">Meeting Request</p>
               <hr className="text-gray-300 mb-4" />
@@ -114,7 +114,7 @@ const Dashboard = () => {
                 <h3 className="text-md text-black font-semibold">
                   Email Summarized
                 </h3>
-                <p>2 hours ago</p>
+                <p className="text-xs">2 hours ago</p>
               </div>
               <p className="mb-2">Weekly Team Update</p>
             </div>

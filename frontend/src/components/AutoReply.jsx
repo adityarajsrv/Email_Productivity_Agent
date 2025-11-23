@@ -56,7 +56,7 @@ const AutoReply = () => {
         <p className="text-lg text-gray-600 mt-2">
           Configure intelligent automatic email responses
         </p>
-      </div>
+      </div> 
       <div className="flex flex-row gap-8">
         <div className="flex-1">
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
