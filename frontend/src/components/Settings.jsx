@@ -67,7 +67,7 @@ const Settings = () => {
 
   return (
     <div className="px-6 py-4">
-      <div className="mb-8">
+      <div className="mb-8 mt-3">
         <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
         <p className="text-md text-gray-600 mt-2">Manage your account and preferences</p>
       </div>

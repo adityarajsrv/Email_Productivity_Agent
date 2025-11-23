@@ -51,7 +51,7 @@ const AutoReply = () => {
 
   return (
     <div className="px-6 py-4">
-      <div className="mb-8">
+      <div className="mb-8 mt-3">
         <h1 className="text-3xl font-bold text-gray-900">AI Auto-Reply</h1>
         <p className="text-lg text-gray-600 mt-2">
           Configure intelligent automatic email responses

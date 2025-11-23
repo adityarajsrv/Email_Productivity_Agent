@@ -95,7 +95,7 @@ const DraftEmail = () => {
 
   return (
     <div className="px-6 py-4">
-      <div className="mb-8">
+      <div className="mb-8 mt-3">
         <h1 className="text-3xl font-bold text-gray-900">AI Email Drafting</h1>
         <p className="text-md text-gray-500 mt-2">Let AI help you write professional emails</p>
       </div>

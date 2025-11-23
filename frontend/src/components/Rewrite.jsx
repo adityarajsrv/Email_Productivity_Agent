@@ -157,7 +157,7 @@ Looking forward to our continued success,
 
   return (
     <div className="px-6 py-4">
-      <div className="mb-8">
+      <div className="mb-8 mt-3">
         <h1 className="text-3xl font-bold text-gray-900">Email Rewrite</h1>
         <p className="text-md text-gray-600 mt-2">Transform your email&apos;s tone and style</p>
       </div>
