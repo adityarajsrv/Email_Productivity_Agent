@@ -7,6 +7,7 @@ import Summaries from "../components/Summaries"
 import AutoReply from "../components/AutoReply"
 import History from "../components/History"
 import Settings from "../components/Settings"
+import PromptBrain from '../components/PromptBrain';
 
 const Home = () => {
   const [activeComponent, setActiveComponent] = useState('dashboard');
@@ -27,6 +28,8 @@ const Home = () => {
         return <History />;
       case 'settings':
         return <Settings />;
+      case 'promptbrain':
+        return <PromptBrain />;
       default:
         return <Dashboard />;
     }

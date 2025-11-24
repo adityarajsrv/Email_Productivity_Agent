@@ -6,10 +6,12 @@ import { FiFileText } from "react-icons/fi";
 import { AiOutlineThunderbolt } from "react-icons/ai";
 import { VscHistory } from "react-icons/vsc";
 import { FiSettings } from "react-icons/fi";
+import { RiBrainLine } from "react-icons/ri"; 
 
 const Sidebar = ({ activeComponent, setActiveComponent }) => {
   const menuItems = [
     { key: 'dashboard', label: 'Dashboard', icon: <AiOutlineAppstore size={28} /> },
+    { key: 'promptbrain', label: 'Prompt Brain', icon: <RiBrainLine size={28} /> }, 
     { key: 'draft', label: 'Draft Email', icon: <TiPen size={28} /> },
     { key: 'rewrite', label: 'Rewrite', icon: <FiRefreshCcw size={28} /> },
     { key: 'summaries', label: 'Summaries', icon: <FiFileText size={28} /> },
