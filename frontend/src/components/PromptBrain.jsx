@@ -1,13 +1,12 @@
 /* eslint-disable no-unused-vars */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FiEdit2, FiMail, FiUpload, FiPlay, FiCheck, FiTrash2 } from 'react-icons/fi';
 
 const PromptBrain = () => {
   const [activeTab, setActiveTab] = useState('prompts');
   const [prompts, setPrompts] = useState({
-    categorization: 'Analyze this email and categorize it into one of: To-Do, Meeting, Follow-up, Request, Information, Other. Provide reasoning.',
-    actionItems: 'Extract specific action items, deadlines, and responsibilities from this email. Format as bullet points.',
-    autoReply: 'Draft a professional auto-reply acknowledging receipt and indicating when to expect a proper response.'
+    action_items: '',
+    auto_reply: ''
   });
   const [editingPrompt, setEditingPrompt] = useState(null);
   const [tempPrompt, setTempPrompt] = useState('');
@@ -15,47 +14,49 @@ const PromptBrain = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
 
-  const mockEmails = [
-    {
-      id: 1,
-      sender: 'project.manager@company.com',
-      subject: 'Q4 Project Timeline Review',
-      timestamp: '2024-01-15 14:30',
-      body: 'Hi team, we need to review the Q4 project timeline. Please provide your updates by EOD Wednesday.',
-      category: '',
-      actionItems: [],
-      processed: false
-    },
-    {
-      id: 2,
-      sender: 'client.relations@partner.org',
-      subject: 'Meeting Follow-up: Contract Discussion',
-      timestamp: '2024-01-15 11:15',
-      body: 'Following our meeting, here are the key action items we discussed...',
-      category: '',
-      actionItems: [],
-      processed: false
-    },
-    {
-      id: 3,
-      sender: 'hr@company.com',
-      subject: 'Benefits Enrollment Reminder',
-      timestamp: '2024-01-14 16:45',
-      body: 'Reminder: Benefits enrollment closes this Friday. Please complete your selections.',
-      category: '',
-      actionItems: [],
-      processed: false
+  useEffect(() => {
+    loadPrompts();
+  }, []);
+
+  const loadPrompts = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/prompts');
+      const promptsData = await response.json();
+      console.log('Loaded prompts:', promptsData);
+      setPrompts(promptsData);
+    } catch (error) {
+      console.error('Error loading prompts:', error);
     }
-  ];
+  };
 
   const startEditingPrompt = (promptType) => {
     setEditingPrompt(promptType);
     setTempPrompt(prompts[promptType]);
   };
 
-  const savePrompt = () => {
+  const savePrompt = async () => {
     if (tempPrompt.trim() && editingPrompt) {
-      setPrompts(prev => ({ ...prev, [editingPrompt]: tempPrompt }));
+      try {
+        const response = await fetch('http://localhost:8000/api/v1/prompts', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            prompt_type: editingPrompt,
+            content: tempPrompt
+          })
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log('Prompt updated:', result);
+          setPrompts(prev => ({ ...prev, [editingPrompt]: tempPrompt }));
+          await loadPrompts();
+        }
+      } catch (error) {
+        console.error('Error updating prompt:', error);
+      }
     }
     setEditingPrompt(null);
     setTempPrompt('');
@@ -66,55 +67,155 @@ const PromptBrain = () => {
     setTempPrompt('');
   };
 
-  const loadMockEmails = () => {
+  const loadMockEmails = async () => {
     setIsLoading(true);
-    setTimeout(() => {
-      setEmails(mockEmails);
+    try {
+      console.log('Loading mock emails...');
+      const response = await fetch('http://localhost:8000/api/v1/emails/load-mock', {
+        method: 'POST'
+      });
+      const result = await response.json();
+      console.log('Mock emails API response:', result);
+      
+      await loadEmails();
+      console.log('Mock emails loaded successfully');
+    } catch (error) {
+      console.error('Error loading emails:', error);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
+  };
+
+  const loadEmails = async () => {
+    try {
+      console.log('Fetching emails from API...');
+      const response = await fetch('http://localhost:8000/api/v1/emails');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const emailsData = await response.json();
+      console.log('Raw emails API response:', emailsData);
+      
+      // Check if we have the expected data structure
+      if (emailsData && emailsData.emails && Array.isArray(emailsData.emails)) {
+        console.log(`Found ${emailsData.emails.length} emails`);
+        
+        const transformedEmails = emailsData.emails.map((email, index) => {
+          console.log(`Email ${index}:`, email);
+          
+          // Handle timestamp conversion safely
+          let formattedTimestamp;
+          try {
+            formattedTimestamp = new Date(email.timestamp).toLocaleString('en-US', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+          } catch (e) {
+            console.warn('Error formatting timestamp:', e);
+            formattedTimestamp = 'Unknown date';
+          }
+          
+          return {
+            id: email.id || `email-${index}`,
+            sender: email.sender || 'Unknown sender',
+            subject: email.subject || 'No subject',
+            timestamp: formattedTimestamp,
+            body: email.body || 'No content',
+            category: (email.tags && email.tags.length > 0) ? email.tags[0] : 'Uncategorized',
+            actionItems: email.action_items || [],
+            processed: email.status === 'processed'
+          };
+        });
+        
+        console.log('Transformed emails:', transformedEmails);
+        setEmails(transformedEmails);
+      } else {
+        console.error('Unexpected API response structure:', emailsData);
+        setEmails([]);
+      }
+    } catch (error) {
+      console.error('Error loading emails:', error);
+      setEmails([]);
+    }
   };
 
   const processEmails = async () => {
     setIsLoading(true);
     setProcessingProgress(0);
     
-    // Simulate processing pipeline
-    for (let i = 0; i < emails.length; i++) {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      setProcessingProgress(((i + 1) / emails.length) * 100);
-      
-      // Simulate AI processing
-      setEmails(prev => prev.map((email, index) => 
-        index === i ? {
-          ...email,
-          category: ['To-Do', 'Meeting', 'Follow-up'][Math.floor(Math.random() * 3)],
-          actionItems: ['Review document', 'Schedule meeting', 'Provide feedback'].slice(0, Math.random() * 3 + 1),
-          processed: true
-        } : email
-      ));
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/emails/process', {
+        method: 'POST'
+      });
+      const result = await response.json();
+      console.log('Processing started:', result);
+      await pollForProcessedEmails();
+    } catch (error) {
+      console.error('Error processing emails:', error);
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
-  const clearEmails = () => {
-    setEmails([]);
-    setProcessingProgress(0);
+  const pollForProcessedEmails = async () => {
+    let attempts = 0;
+    const maxAttempts = 30;
+    
+    const poll = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/api/v1/emails/processed');
+        const processedEmails = await response.json();
+        
+        const totalEmails = emails.length;
+        const processedCount = processedEmails.length;
+        const progress = totalEmails > 0 ? (processedCount / totalEmails) * 100 : 0;
+        setProcessingProgress(progress);
+        
+        console.log(`Polling: ${processedCount}/${totalEmails} processed (${progress}%)`);
+        
+        if (processedCount > 0) {
+          await loadEmails();
+        }
+        
+        if (processedCount < totalEmails && attempts < maxAttempts) {
+          attempts++;
+          setTimeout(poll, 1000);
+        }
+      } catch (error) {
+        console.error('Error polling for processed emails:', error);
+      }
+    };
+    
+    await poll();
+  };
+
+  const clearEmails = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/emails', {
+        method: 'DELETE'
+      });
+      const result = await response.json();
+      setEmails([]);
+      setProcessingProgress(0);
+      console.log('Emails cleared:', result);
+    } catch (error) {
+      console.error('Error clearing emails:', error);
+    }
   };
 
   const promptConfigs = [
     {
-      key: 'categorization',
-      label: 'Categorization Prompt',
-      description: 'Defines how emails are categorized for organization'
-    },
-    {
-      key: 'actionItems',
+      key: 'action_items',
       label: 'Action Item Prompt',
       description: 'Extracts tasks, deadlines, and responsibilities'
     },
     {
-      key: 'autoReply',
+      key: 'auto_reply',
       label: 'Auto-Reply Draft Prompt',
       description: 'Generates automatic responses based on email content'
     }
@@ -126,6 +227,14 @@ const PromptBrain = () => {
         <h1 className="text-3xl font-bold text-gray-900">Email Intelligence Hub</h1>
         <p className="text-gray-600 mt-2">Ingest, categorize, and automate email processing with AI</p>
       </div>
+      
+      {/* Debug info - remove in production */}
+      <div className="mb-4 p-2 bg-yellow-100 border border-yellow-400 rounded">
+        <p className="text-sm text-yellow-800">
+          Debug: {emails.length} emails loaded | API calls working
+        </p>
+      </div>
+      
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1">
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
@@ -174,7 +283,7 @@ const PromptBrain = () => {
                     ) : (
                       <div className="bg-gray-50 rounded p-2 min-h-20">
                         <p className="text-gray-700 whitespace-pre-wrap text-xs leading-relaxed">
-                          {prompts[config.key]}
+                          {prompts[config.key] || 'No prompt loaded...'}
                         </p>
                       </div>
                     )}
@@ -192,7 +301,7 @@ const PromptBrain = () => {
                 <div className="flex space-x-2">
                   <button
                     onClick={loadMockEmails}
-                    disabled={isLoading || emails.length > 0}
+                    disabled={isLoading}
                     className="flex items-center space-x-2 px-3 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-600 transition-colors cursor-pointer"
                   >
                     <FiUpload size={16} />
@@ -237,6 +346,12 @@ const PromptBrain = () => {
                   <FiMail className="mx-auto text-gray-400" size={48} />
                   <h3 className="text-gray-900 font-medium mt-4">No emails loaded</h3>
                   <p className="text-gray-600 text-sm mt-2">Load mock inbox to start processing</p>
+                  <button 
+                    onClick={loadMockEmails}
+                    className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  >
+                    Load Emails Now
+                  </button>
                 </div>
               ) : (
                 <div className="space-y-3">

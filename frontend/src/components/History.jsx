@@ -1,7 +1,8 @@
-import { AiOutlineMail } from "react-icons/ai";
-import { FiFileText, FiRefreshCcw, FiFilter } from "react-icons/fi";
+/* eslint-disable no-unused-vars */
+import { AiOutlineMail, AiOutlineClose } from "react-icons/ai";
+import { FiFileText, FiRefreshCcw, FiFilter, FiCheck, FiClock, FiCopy, FiExternalLink } from "react-icons/fi";
 import { SlClock } from "react-icons/sl";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 const History = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -11,84 +12,94 @@ const History = () => {
     tag: "all",
     date: "all",
   });
+  const [processedEmails, setProcessedEmails] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedEmail, setSelectedEmail] = useState(null);
+  const [showModal, setShowModal] = useState(false);
 
-  const historyItems = useMemo(
-    () => [
-      {
-        id: 1,
-        icon: AiOutlineMail,
-        iconColor: "text-blue-600",
-        bgColor: "bg-blue-100",
-        title: "Q4 Marketing Strategy",
-        tag: "Draft",
-        recipient: "team@company.com",
-        date: "2024-01-15 10:30 AM",
-        status: "draft",
-        statusColor: "border-gray-300 bg-gray-300 text-black",
-      },
-      {
-        id: 2,
-        icon: FiRefreshCcw,
-        iconColor: "text-purple-600",
-        bgColor: "bg-purple-100",
-        title: "Client Proposal Document",
-        tag: "Rewrite",
-        recipient: "client@example.com",
-        date: "2024-01-15 09:15 AM",
-        status: "sent",
-        statusColor: "border-[#6467F2] bg-[#6467F2] text-white",
-      },
-      {
-        id: 3,
-        icon: FiFileText,
-        iconColor: "text-green-600",
-        bgColor: "bg-green-100",
-        title: "Weekly Team Update",
-        tag: "Summary",
-        recipient: "team@company.com",
-        date: "2024-01-14 04:20 PM",
-        status: "completed",
-        statusColor: "border-gray-300 bg-gray-300 text-black",
-      },
-      {
-        id: 4,
-        icon: AiOutlineMail,
-        iconColor: "text-blue-600",
-        bgColor: "bg-blue-100",
-        title: "Budget Approval Request",
-        tag: "Urgent",
-        recipient: "finance@company.com",
-        date: "2024-01-14 02:45 PM",
-        status: "sent",
-        statusColor: "border-[#6467F2] bg-[#6467F2] text-white",
-      },
-      {
-        id: 5,
-        icon: FiRefreshCcw,
-        iconColor: "text-orange-600",
-        bgColor: "bg-orange-100",
-        title: "Project Timeline Review",
-        tag: "Revision",
-        recipient: "pm@company.com",
-        date: "2024-01-14 11:20 AM",
-        status: "draft",
-        statusColor: "border-gray-300 bg-gray-300 text-black",
-      },
-      {
-        id: 6,
-        icon: FiFileText,
-        iconColor: "text-red-600",
-        bgColor: "bg-red-100",
-        title: "Emergency Meeting Notes",
-        tag: "Important",
-        recipient: "leadership@company.com",
-        date: "2024-01-13 03:30 PM",
-        status: "sent",
-        statusColor: "border-[#6467F2] bg-[#6467F2] text-white",
-      },
-    ],
-    []
-  );
+  // Load processed emails from backend
+  useEffect(() => {
+    loadProcessedEmails();
+  }, []);
+
+  const loadProcessedEmails = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('http://localhost:8000/api/v1/emails/processed');
+      const emails = await response.json();
+      console.log('Loaded processed emails:', emails);
+      setProcessedEmails(emails);
+    } catch (error) {
+      console.error('Error loading processed emails:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Transform processed emails to history items
+  const historyItems = useMemo(() => {
+    return processedEmails.map((email, index) => {
+      // Determine icon and styling based on email content and processing
+      let icon, iconColor, bgColor, tag, status, statusColor;
+      
+      // Determine tag based on email content and AI processing
+      if (email.tags && email.tags.length > 0) {
+        tag = email.tags[0].charAt(0).toUpperCase() + email.tags[0].slice(1).replace('-', ' ');
+      } else if (email.priority === 'high') {
+        tag = 'Urgent';
+      } else if (email.action_items && email.action_items.length > 0) {
+        tag = 'Action Required';
+      } else {
+        tag = 'Processed';
+      }
+
+      // Determine status and styling
+      if (email.status === 'processed') {
+        status = 'completed';
+        statusColor = 'border-green-500 bg-green-500 text-white';
+        icon = FiCheck;
+        iconColor = 'text-green-600';
+        bgColor = 'bg-green-100';
+      } else {
+        status = 'draft';
+        statusColor = 'border-gray-300 bg-gray-300 text-black';
+        icon = AiOutlineMail;
+        iconColor = 'text-blue-600';
+        bgColor = 'bg-blue-100';
+      }
+
+      // Format date
+      const emailDate = new Date(email.timestamp);
+      const formattedDate = emailDate.toLocaleDateString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric'
+      });
+      const formattedTime = emailDate.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+
+      return {
+        id: email.id,
+        emailData: email, // Store original email data
+        icon: icon,
+        iconColor: iconColor,
+        bgColor: bgColor,
+        title: email.subject,
+        tag: tag,
+        recipient: email.sender,
+        date: `${formattedDate} ${formattedTime}`,
+        status: status,
+        statusColor: statusColor,
+        actionItems: email.action_items || [],
+        processedAt: email.processed_at,
+        priority: email.priority,
+        originalTimestamp: email.timestamp
+      };
+    });
+  }, [processedEmails]);
 
   const filteredItems = useMemo(() => {
     let results = historyItems;
@@ -117,13 +128,13 @@ const History = () => {
     if (filters.date !== "all") {
       const today = new Date().toDateString();
       results = results.filter((item) => {
-        const itemDate = new Date(item.date.split(" ")[0]).toDateString();
+        const itemDate = new Date(item.originalTimestamp).toDateString();
         if (filters.date === "today") {
           return itemDate === today;
         } else if (filters.date === "last week") {
           const weekAgo = new Date();
           weekAgo.setDate(weekAgo.getDate() - 7);
-          return new Date(item.date.split(" ")[0]) >= weekAgo;
+          return new Date(item.originalTimestamp) >= weekAgo;
         }
         return true;
       });
@@ -152,37 +163,235 @@ const History = () => {
     setSearchTerm("");
   };
 
-  const handleView = (itemId) => {
-    alert(`Viewing item ${itemId}`);
+  const handleView = (item) => {
+    setSelectedEmail(item);
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedEmail(null);
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text).then(() => {
+      // You could add a toast notification here
+      console.log('Copied to clipboard');
+    });
   };
 
   const getStatusText = (status) => {
     return status.charAt(0).toUpperCase() + status.slice(1);
   };
-  const statusOptions = ["all", "draft", "sent", "completed"];
-  const tagOptions = [
-    "all",
-    "draft",
-    "rewrite",
-    "summary",
-    "urgent",
-    "revision",
-    "important",
-  ];
+
+  const statusOptions = ["all", "completed", "draft"];
+  const tagOptions = useMemo(() => {
+    const tags = ["all", ...new Set(historyItems.map(item => item.tag.toLowerCase()))];
+    return tags.filter(tag => tag !== "all");
+  }, [historyItems]);
+  
   const dateOptions = ["all", "today", "last week"];
 
   const activeFilterCount = Object.values(filters).filter(
     (value) => value !== "all"
   ).length;
 
+  if (isLoading) {
+    return (
+      <div className="px-6 py-4">
+        <div className="mb-8 mt-3">
+          <h1 className="text-3xl font-bold text-gray-900">History</h1>
+          <p className="text-md text-gray-600 mt-2">
+            View all your email interactions and activities
+          </p>
+        </div>
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="px-6 py-4">
+      {/* Email Detail Modal */}
+      {showModal && selectedEmail && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center space-x-3">
+                <div className={`w-12 h-12 ${selectedEmail.bgColor} rounded-full flex items-center justify-center`}>
+                  <selectedEmail.icon size={24} className={selectedEmail.iconColor} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">{selectedEmail.title}</h2>
+                  <p className="text-gray-600">From: {selectedEmail.recipient}</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => copyToClipboard(selectedEmail.emailData.body)}
+                  className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  title="Copy email content"
+                >
+                  <FiCopy size={18} />
+                </button>
+                <button
+                  onClick={closeModal}
+                  className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <AiOutlineClose size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left Column - Email Details */}
+                <div className="lg:col-span-2 space-y-6">
+                  {/* Email Metadata */}
+                  <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Received</label>
+                      <p className="text-gray-900 font-medium">{selectedEmail.date}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Priority</label>
+                      <p className={`font-medium ${
+                        selectedEmail.priority === 'high' ? 'text-red-600' : 
+                        selectedEmail.priority === 'medium' ? 'text-yellow-600' : 'text-green-600'
+                      }`}>
+                        {selectedEmail.priority ? selectedEmail.priority.charAt(0).toUpperCase() + selectedEmail.priority.slice(1) : 'Normal'}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Status</label>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${selectedEmail.statusColor}`}>
+                        {getStatusText(selectedEmail.status)}
+                      </span>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Category</label>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {selectedEmail.tag}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Email Content */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Email Content</h3>
+                    <div className="bg-white border border-gray-200 rounded-lg p-4">
+                      <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                        {selectedEmail.emailData.body}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column - AI Insights */}
+                <div className="space-y-6">
+                  {/* AI Processing Info */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h3 className="text-lg font-semibold text-blue-900 mb-2 flex items-center">
+                      <FiCheck className="mr-2" />
+                      AI Processing
+                    </h3>
+                    <p className="text-sm text-blue-700">
+                      Processed on {new Date(selectedEmail.processedAt).toLocaleString()}
+                    </p>
+                  </div>
+
+                  {/* Action Items */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                      <FiCheck className="mr-2 text-green-600" />
+                      Action Items ({selectedEmail.actionItems.length})
+                    </h3>
+                    {selectedEmail.actionItems.length > 0 ? (
+                      <div className="space-y-2">
+                        {selectedEmail.actionItems.map((action, index) => (
+                          <div
+                            key={index}
+                            className="flex items-start space-x-3 p-3 bg-green-50 border border-green-200 rounded-lg"
+                          >
+                            <div className="shrink-0 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center mt-0.5">
+                              <span className="text-white text-xs font-bold">{index + 1}</span>
+                            </div>
+                            <p className="text-sm text-gray-700 flex-1">{action}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 text-gray-500">
+                        <FiFileText size={24} className="mx-auto mb-2 text-gray-400" />
+                        <p>No action items identified</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Tags */}
+                  {selectedEmail.emailData.tags && selectedEmail.emailData.tags.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3">Tags</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedEmail.emailData.tags.map((tag, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800"
+                          >
+                            {tag.charAt(0).toUpperCase() + tag.slice(1).replace('-', ' ')}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={closeModal}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  copyToClipboard(selectedEmail.emailData.body);
+                  closeModal();
+                }}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2"
+              >
+                <FiCopy size={16} />
+                <span>Copy & Close</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
       <div className="mb-8 mt-3">
         <h1 className="text-3xl font-bold text-gray-900">History</h1>
         <p className="text-md text-gray-600 mt-2">
           View all your email interactions and activities
         </p>
+        <div className="mt-2 text-sm text-gray-500">
+          Showing {historyItems.length} processed email{historyItems.length !== 1 ? 's' : ''}
+          <button 
+            onClick={loadProcessedEmails}
+            className="ml-4 text-blue-600 hover:text-blue-800 cursor-pointer text-sm"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
+      
       <div className="flex flex-col gap-4">
         <div className="flex flex-row gap-4 items-center">
           <div className="border border-black/10 rounded-lg w-full h-20 px-6 py-4 bg-white shadow-md hover:shadow-lg cursor-pointer flex-1">
@@ -205,20 +414,21 @@ const History = () => {
             </div>
           </div>
           <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`cursor-pointer flex items-center gap-2 px-4 py-3 rounded-2xl border-2 border-gray-300 bg-white hover:bg-gray-50 transition-colors ${
-                activeFilterCount > 0 ? "border-blue-500 bg-blue-50" : ""
-              }`}
-            >
-              <FiFilter size={16} className="text-gray-600" />
-              <span className="text-sm text-gray-600">Filter</span>
-              {activeFilterCount > 0 && (
-                <span className="bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {activeFilterCount}
-                </span>
-              )}
-            </button>
+            onClick={() => setShowFilters(!showFilters)}
+            className={`cursor-pointer flex items-center gap-2 px-4 py-3 rounded-2xl border-2 border-gray-300 bg-white hover:bg-gray-50 transition-colors ${
+              activeFilterCount > 0 ? "border-blue-500 bg-blue-50" : ""
+            }`}
+          >
+            <FiFilter size={16} className="text-gray-600" />
+            <span className="text-sm text-gray-600">Filter</span>
+            {activeFilterCount > 0 && (
+              <span className="bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
         </div>
+        
         {showFilters && (
           <div className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -288,6 +498,7 @@ const History = () => {
           </div>
         )}
       </div>
+      
       {(searchTerm || activeFilterCount > 0) && (
         <div className="mt-4 text-sm text-gray-600 flex justify-between items-center">
           <span>
@@ -309,6 +520,7 @@ const History = () => {
           )}
         </div>
       )}
+      
       {filteredItems.length > 0 ? (
         filteredItems.map((item) => {
           const IconComponent = item.icon;
@@ -316,7 +528,7 @@ const History = () => {
             <div
               key={item.id}
               className="border border-black/10 rounded-lg w-full mt-5 px-6 py-4 bg-white shadow-sm hover:shadow-lg cursor-pointer transition-shadow duration-200"
-              onClick={() => handleView(item.id)}
+              onClick={() => handleView(item)}
             >
               <div className="flex flex-col">
                 <div className="flex flex-row justify-between items-start">
@@ -337,11 +549,26 @@ const History = () => {
                       </div>
                       <div className="flex flex-row items-center space-x-2 mt-1">
                         <p className="text-sm text-gray-600 mr-5">
-                          To: {item.recipient}
+                          From: {item.recipient}
                         </p>
                         <SlClock size={14} className="mt-0.5 text-gray-500" />
                         <div className="text-sm text-gray-500">{item.date}</div>
                       </div>
+                      {item.actionItems.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          <span className="text-xs text-gray-500">Actions: </span>
+                          {item.actionItems.slice(0, 2).map((action, index) => (
+                            <span key={index} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                              {action.length > 30 ? action.substring(0, 30) + '...' : action}
+                            </span>
+                          ))}
+                          {item.actionItems.length > 2 && (
+                            <span className="text-xs text-gray-500">
+                              +{item.actionItems.length - 2} more
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex flex-row justify-between space-x-3 text-sm mt-4">
@@ -351,13 +578,14 @@ const History = () => {
                       {getStatusText(item.status)}
                     </p>
                     <button
-                      className="font-semibold cursor-pointer text-blue-600 hover:text-blue-800"
+                      className="font-semibold cursor-pointer text-blue-600 hover:text-blue-800 flex items-center space-x-1"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleView(item.id);
+                        handleView(item);
                       }}
                     >
-                      View
+                      <FiExternalLink size={14} />
+                      <span>View</span>
                     </button>
                   </div>
                 </div>
@@ -367,13 +595,24 @@ const History = () => {
         })
       ) : (
         <div className="border border-black/10 rounded-lg w-full mt-5 px-6 py-8 bg-white shadow-sm text-center">
-          <p className="text-gray-500">No results found</p>
-          <button
-            className="cursor-pointer mt-2 text-blue-600 hover:text-blue-800"
-            onClick={clearAllFilters}
-          >
-            Clear filters
-          </button>
+          {historyItems.length === 0 ? (
+            <div>
+              <p className="text-gray-500">No processed emails found</p>
+              <p className="text-sm text-gray-400 mt-2">
+                Process some emails in the Prompt Brain to see them here
+              </p>
+            </div>
+          ) : (
+            <div>
+              <p className="text-gray-500">No results found</p>
+              <button
+                className="cursor-pointer mt-2 text-blue-600 hover:text-blue-800"
+                onClick={clearAllFilters}
+              >
+                Clear filters
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
