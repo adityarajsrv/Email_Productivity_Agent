@@ -11,10 +11,27 @@ class EmailResponse(BaseModel):
     timestamp: datetime
     status: EmailStatus
     action_items: List[str]
-    processed_at: Optional[datetime]
-    ai_summary: Optional[str]
-    priority: Optional[str]
+    processed_at: Optional[datetime] = None
+    ai_summary: Optional[str] = None
+    priority: Optional[str] = None
     tags: List[str]
+
+    @classmethod
+    def from_email_model(cls, email):
+        """Convert Email model to EmailResponse"""
+        return cls(
+            id=str(email.id),
+            sender=email.sender,
+            subject=email.subject,
+            body=email.body,
+            timestamp=email.timestamp,
+            status=email.status,
+            action_items=email.action_items,
+            processed_at=email.processed_at,
+            ai_summary=email.ai_summary,
+            priority=email.priority,
+            tags=email.tags
+        )
 
 class EmailListResponse(BaseModel):
     emails: List[EmailResponse]

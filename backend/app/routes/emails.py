@@ -20,8 +20,11 @@ async def get_emails(email_service: EmailService = Depends(get_email_service)):
     emails = await email_service.get_emails()
     processed_count = len([e for e in emails if e.status.value == "processed"])
     
+    # Convert Email models to EmailResponse schemas
+    email_responses = [EmailResponse.from_email_model(email) for email in emails]
+    
     return EmailListResponse(
-        emails=emails,
+        emails=email_responses,
         total=len(emails),
         processed_count=processed_count
     )
@@ -60,7 +63,9 @@ async def process_emails(
 @router.get("/emails/processed", response_model=List[EmailResponse])
 async def get_processed_emails(email_service: EmailService = Depends(get_email_service)):
     """Get processed emails with AI insights"""
-    return await email_service.get_processed_emails()
+    emails = await email_service.get_processed_emails()
+    # Convert Email models to EmailResponse schemas
+    return [EmailResponse.from_email_model(email) for email in emails]
 
 @router.delete("/emails")
 async def clear_all_emails(email_service: EmailService = Depends(get_email_service)):
@@ -73,4 +78,5 @@ async def get_email(email_id: str, email_service: EmailService = Depends(get_ema
     email = await email_service.get_email(email_id)
     if not email:
         raise HTTPException(status_code=404, detail="Email not found")
-    return email
+    # Convert Email model to EmailResponse schema
+    return EmailResponse.from_email_model(email)

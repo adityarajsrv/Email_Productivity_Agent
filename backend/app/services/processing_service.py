@@ -5,6 +5,9 @@ from app.services.prompt_service import PromptService
 from app.services.email_service import EmailService
 import asyncio
 from datetime import datetime
+import json
+import google.generativeai as genai  # Changed from 'import genai'
+from app.config import settings  # Import settings properly
 
 class ProcessingService:
     def __init__(self):
@@ -103,3 +106,144 @@ class ProcessingService:
             await asyncio.sleep(0.5)
         
         return processed_emails
+
+    async def generate_summary(self, email):
+        """
+        Generate AI-powered summary for an email
+        """
+        try:
+            # Check if API key is available
+            api_key = getattr(settings, 'GOOGLE_API_KEY', None) or getattr(settings, 'GOOGLE_API_KEY', None)
+            if not api_key:
+                return self._generate_fallback_summary(email)
+            
+            # Configure and use Gemini
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel('gemini-2.5-flash')
+            
+            prompt = f"""
+            Analyze the following email and provide a comprehensive summary with these components:
+            
+            1. MAIN SUMMARY: A concise 2-3 sentence overview of the email's core message
+            2. KEY POINTS: 3-5 bullet points of the most important information
+            3. ACTION ITEMS: Specific tasks or follow-ups required (if any)
+            4. SENTIMENT: Overall tone (positive, negative, neutral, urgent)
+            5. CATEGORIES: Relevant tags/categories (e.g., business, personal, urgent, follow-up)
+            
+            EMAIL CONTENT:
+            Subject: {email.subject}
+            From: {email.sender}
+            Body: {email.body}
+            
+            Please format your response as JSON:
+            {{
+                "summary": "main summary text",
+                "key_points": ["point 1", "point 2", "point 3"],
+                "action_items": ["action 1", "action 2"],
+                "sentiment": "positive/negative/neutral/urgent",
+                "tags": ["tag1", "tag2", "tag3"]
+            }}
+            """
+            
+            response = model.generate_content(prompt)
+            response_text = response.text.strip()
+            
+            # Extract JSON from response
+            try:
+                # Remove markdown code blocks if present
+                if '```json' in response_text:
+                    response_text = response_text.split('```json')[1].split('```')[0]
+                elif '```' in response_text:
+                    response_text = response_text.split('```')[1].split('```')[0]
+                
+                summary_data = json.loads(response_text)
+            except json.JSONDecodeError:
+                # Fallback if JSON parsing fails
+                summary_data = self._parse_text_response(response_text)
+            
+            return summary_data
+            
+        except Exception as e:
+            print(f"Error generating AI summary: {str(e)}")
+            return self._generate_fallback_summary(email)
+    
+    def _parse_text_response(self, text):
+        """Parse text response when JSON parsing fails"""
+        # Simple text parsing logic
+        lines = text.split('\n')
+        summary_data = {
+            "summary": "",
+            "key_points": [],
+            "action_items": [],
+            "sentiment": "neutral",
+            "tags": []
+        }
+        
+        current_section = None
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+                
+            if "summary:" in line.lower() or "main summary:" in line.lower():
+                current_section = "summary"
+                summary_data["summary"] = line.split(":", 1)[1].strip()
+            elif "key points:" in line.lower():
+                current_section = "key_points"
+            elif "action items:" in line.lower():
+                current_section = "action_items"
+            elif "sentiment:" in line.lower():
+                summary_data["sentiment"] = line.split(":", 1)[1].strip().lower()
+            elif "categories:" in line.lower() or "tags:" in line.lower():
+                current_section = "tags"
+            elif line.startswith("-") or line.startswith("•"):
+                point = line[1:].strip()
+                if current_section == "key_points" and len(summary_data["key_points"]) < 5:
+                    summary_data["key_points"].append(point)
+                elif current_section == "action_items" and len(summary_data["action_items"]) < 3:
+                    summary_data["action_items"].append(point)
+                elif current_section == "tags" and len(summary_data["tags"]) < 5:
+                    summary_data["tags"].append(point)
+            elif current_section == "summary" and not summary_data["summary"]:
+                summary_data["summary"] = line
+        
+        return summary_data
+    
+    def _generate_fallback_summary(self, email):
+        """Generate a basic summary when AI is not available"""
+        # Simple rule-based summary generation
+        body_lower = email.body.lower()
+        
+        # Determine sentiment based on keywords
+        sentiment = "neutral"
+        positive_words = ['great', 'excellent', 'good', 'thanks', 'thank you', 'appreciate']
+        negative_words = ['problem', 'issue', 'concern', 'urgent', 'asap', 'immediately']
+        urgent_words = ['urgent', 'asap', 'immediately', 'emergency', 'important']
+        
+        if any(word in body_lower for word in urgent_words):
+            sentiment = "urgent"
+        elif any(word in body_lower for word in positive_words):
+            sentiment = "positive"
+        elif any(word in body_lower for word in negative_words):
+            sentiment = "negative"
+        
+        # Generate basic summary
+        words = email.body.split()[:20]  # First 20 words
+        summary = " ".join(words) + ("..." if len(email.body.split()) > 20 else "")
+        
+        # Extract potential action items (lines with action verbs)
+        action_verbs = ['please', 'need', 'required', 'should', 'must', 'action']
+        action_items = []
+        for line in email.body.split('.'):
+            if any(verb in line.lower() for verb in action_verbs):
+                action_items.append(line.strip())
+                if len(action_items) >= 2:
+                    break
+        
+        return {
+            "summary": summary,
+            "key_points": [f"From: {email.sender}", f"Subject: {email.subject}"],
+            "action_items": action_items[:2],
+            "sentiment": sentiment,
+            "tags": [email.priority, "email"]  # Basic tags
+        }

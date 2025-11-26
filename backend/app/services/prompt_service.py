@@ -20,18 +20,29 @@ class PromptService:
             self._collection = self.db.prompts
         return self._collection
     
+    def _convert_objectid_to_str(self, document):
+        """Convert MongoDB document ObjectId to string for Pydantic"""
+        if document and '_id' in document:
+            document['_id'] = str(document['_id'])
+        return document
+    
     async def get_prompts(self) -> PromptConfig:
         """Get current prompt configurations"""
         prompts = await self.collection.find_one({})
         
         if not prompts:
             # Initialize with default prompts
-            default_prompts = PromptConfig(
-                action_items=settings.DEFAULT_PROMPTS["action_items"],
-                auto_reply=settings.DEFAULT_PROMPTS["auto_reply"]
-            )
-            result = await self.collection.insert_one(default_prompts.model_dump(by_alias=True))
+            default_prompts_dict = {
+                "action_items": settings.DEFAULT_PROMPTS["action_items"],
+                "auto_reply": settings.DEFAULT_PROMPTS["auto_reply"]
+            }
+            result = await self.collection.insert_one(default_prompts_dict)
+            
+            # Get the inserted document and convert ObjectId to string
             prompts = await self.collection.find_one({"_id": result.inserted_id})
+        
+        # Convert ObjectId to string
+        prompts = self._convert_objectid_to_str(prompts)
         
         return PromptConfig(**prompts)
     
@@ -47,7 +58,7 @@ class PromptService:
         # Update the specific prompt
         update_data = {prompt_type: content}
         await self.collection.update_one(
-            {"_id": current_prompts.id},
+            {"_id": ObjectId(current_prompts.id)},
             {"$set": update_data}
         )
         
@@ -55,13 +66,17 @@ class PromptService:
     
     async def reset_to_defaults(self) -> PromptConfig:
         """Reset prompts to default values"""
-        default_prompts = PromptConfig(
-            action_items=settings.DEFAULT_PROMPTS["action_items"],
-            auto_reply=settings.DEFAULT_PROMPTS["auto_reply"]
-        )
+        default_prompts_dict = {
+            "action_items": settings.DEFAULT_PROMPTS["action_items"],
+            "auto_reply": settings.DEFAULT_PROMPTS["auto_reply"]
+        }
         
         # Delete all and create new
         await self.collection.delete_many({})
-        await self.collection.insert_one(default_prompts.model_dump(by_alias=True))
+        result = await self.collection.insert_one(default_prompts_dict)
         
-        return default_prompts
+        # Get the new document and convert ObjectId to string
+        prompts = await self.collection.find_one({"_id": result.inserted_id})
+        prompts = self._convert_objectid_to_str(prompts)
+        
+        return PromptConfig(**prompts)

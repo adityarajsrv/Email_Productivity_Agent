@@ -23,6 +23,12 @@ class EmailService:
             self._collection = self.db.emails
         return self._collection
     
+    def _convert_objectid_to_str(self, document):
+        """Convert MongoDB document ObjectId to string for Pydantic"""
+        if document and '_id' in document:
+            document['_id'] = str(document['_id'])
+        return document
+    
     async def load_mock_emails(self) -> List[Email]:
         """Load mock emails from JSON file"""
         try:
@@ -30,7 +36,7 @@ class EmailService:
             await self.collection.delete_many({})
             
             # Load mock data
-            mock_file_path = os.path.join(os.path.dirname(__file__), '../../data/mock_inbox.json')
+            mock_file_path = os.path.join(os.path.dirname(__file__), '../../app/data/mock_inbox.json')
             with open(mock_file_path, 'r') as f:
                 mock_emails = json.load(f)
             
@@ -40,15 +46,15 @@ class EmailService:
                 email_data['timestamp'] = datetime.fromisoformat(email_data['timestamp'])
                 email_create = EmailCreate(**email_data)
                 
-                # Create Email with ID
-                email_dict = email_create.model_dump()
-                email_dict['_id'] = ObjectId()
-                email_obj = Email(**email_dict)
+                # Insert into database
+                result = await self.collection.insert_one(email_create.model_dump())
+                
+                # Get the inserted document and convert ObjectId to string
+                inserted_email = await self.collection.find_one({"_id": result.inserted_id})
+                inserted_email = self._convert_objectid_to_str(inserted_email)
+                
+                email_obj = Email(**inserted_email)
                 email_objects.append(email_obj)
-            
-            # Insert into database
-            if email_objects:
-                await self.collection.insert_many([email.model_dump(by_alias=True) for email in email_objects])
             
             return email_objects
             
@@ -58,21 +64,34 @@ class EmailService:
     
     async def get_emails(self) -> List[Email]:
         """Get all emails"""
-        emails = await self.collection.find().to_list(length=100)
-        return [Email(**email) for email in emails]
+        emails_cursor = self.collection.find()
+        emails_list = await emails_cursor.to_list(length=100)
+        
+        # Convert all ObjectIds to strings
+        emails_list = [self._convert_objectid_to_str(email) for email in emails_list]
+        
+        return [Email(**email) for email in emails_list]
     
     async def get_email(self, email_id: str) -> Optional[Email]:
         """Get specific email by ID"""
         try:
             email = await self.collection.find_one({"_id": ObjectId(email_id)})
-            return Email(**email) if email else None
+            if email:
+                email = self._convert_objectid_to_str(email)
+                return Email(**email)
+            return None
         except:
             return None
     
     async def get_processed_emails(self) -> List[Email]:
         """Get only processed emails"""
-        emails = await self.collection.find({"status": EmailStatus.PROCESSED}).to_list(length=100)
-        return [Email(**email) for email in emails]
+        emails_cursor = self.collection.find({"status": EmailStatus.PROCESSED})
+        emails_list = await emails_cursor.to_list(length=100)
+        
+        # Convert all ObjectIds to strings
+        emails_list = [self._convert_objectid_to_str(email) for email in emails_list]
+        
+        return [Email(**email) for email in emails_list]
     
     async def update_email(self, email_id: str, update_data: dict) -> Optional[Email]:
         """Update email with processed data"""
